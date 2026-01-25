@@ -2,6 +2,10 @@ import sqlite3
 import hashlib
 from datetime import datetime
 
+import os
+if os.path.exists("pip.db"):
+    os.remove("pip.db")
+
 conn = sqlite3.connect("pip.db", check_same_thread=False)
 conn.row_factory = sqlite3.Row
 
@@ -11,8 +15,7 @@ def init_db():
     c.execute("""
     CREATE TABLE IF NOT EXISTS admin (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password TEXT,
+        username TEXT,
         email TEXT,
         token TEXT,
         expired_at TEXT
