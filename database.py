@@ -13,7 +13,9 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
         password TEXT,
-        email TEXT
+        email TEXT,
+        token TEXT,
+        expired_at TEXT
     )
     """)
 
