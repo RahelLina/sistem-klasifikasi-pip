@@ -56,7 +56,7 @@ def init_db():
         VALUES (?,?,?)
         """, (
             "admin",
-            hashlib.sha256("rahelsimanjuntak12".encode()).hexdigest(),
+            hashlib.sha256("admin123".encode()).hexdigest(),
             "rahelsimanjuntak12@gmail.com"
         ))
 
