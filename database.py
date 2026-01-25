@@ -56,8 +56,8 @@ def init_db():
         VALUES (?,?,?)
         """, (
             "admin",
-            hashlib.sha256("admin123".encode()).hexdigest(),
-            "admin@gmail.com"
+            hashlib.sha256("rahelsimanjuntak12".encode()).hexdigest(),
+            "rahelsimanjuntak12@gmail.com"
         ))
 
     conn.commit()
