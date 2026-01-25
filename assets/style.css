@@ -11,9 +11,14 @@ html, body, .stApp {
 }
 
 /* Matikan Bar Default Streamlit */
-header, footer, #MainMenu, div[data-testid="stDecoration"] {
+footer {
     display: none !important;
 }
+
+#MainMenu {
+    visibility: hidden !important;
+}
+
 /* RESET TOTAL AGAR KANDAS KE KIRI, ATAS, BAWAH */
 .block-container {
     padding-top: 0.5rem !important;
