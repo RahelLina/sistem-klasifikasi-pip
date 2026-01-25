@@ -105,16 +105,15 @@ def reset_password_ui():
                 expired = datetime.now() + timedelta(minutes=15)
                 
                 conn.execute("INSERT INTO password_reset (username, email, token, expired_at) VALUES (?,?,?,?)",
-                             (user["username"], email, token, expired.isoformat()))
+                            (user["username"], email, token, expired.isoformat()))
                 conn.commit()
 
-                # Gunakan variabel APP_URL yang sudah didefinisikan sebelumnya
-                # reset_link = f"{st.secrets['APP_URL']}?token={token}"
-                # Jika send_email(email, reset_link): ...
-                st.success(f"✅ Link reset berhasil dikirim ke {email}")
-            else:
-                # Jika email tidak ada, tidak akan error 'UnboundLocalError'
-                st.error("Email tidak ditemukan dalam sistem kami.")
+                # Kirim email reset password
+                reset_link = f"{APP_URL}?token={token}"
+                if send_email(email, reset_link):
+                    st.success(f"✅ Link reset berhasil dikirim ke {email}")
+                else:
+                    st.error("❌ Gagal mengirim email. Pastikan konfigurasi email sudah benar.")
 
     # Tombol Kembali (di luar blok else agar selalu muncul)
     st.markdown("---")
