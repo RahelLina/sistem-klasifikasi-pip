@@ -1,3 +1,4 @@
+from flask import app
 import streamlit as st
 import pandas as pd
 import sqlite3
@@ -547,3 +548,5 @@ if menu == "Pengaturan":
     with c2:
         if st.button("❌ Batal", key="btn_batal_pengaturan"):
             st.rerun()
+        
+# Force update - 26 January 2026
