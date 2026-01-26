@@ -79,6 +79,9 @@ if "login" not in st.session_state: st.session_state.login = False
 if "page" not in st.session_state: st.session_state.page = "login"
 if "username" not in st.session_state: st.session_state.username = None
 if "menu" not in st.session_state: st.session_state.menu = "Statistik PIP"
+
+if not st.session_state.login and st.session_state.page != "reset_password":
+    st.session_state.page = "login"
 # =====================================================
 # FUNGSI EXPORT
 # =====================================================
