@@ -141,62 +141,60 @@ except Exception as e:
 # =====================================================
 # LOGIN PAGE
 # =====================================================
-if not st.session_state.login and st.session_state.page == "login":
-    # HEADER KANDAS KIRI
-    logo_b64 = get_base64("assets/images/logo.png")
-    st.markdown(f"""
-        <div class="login-header">
-            <img src="data:image/png;base64,{logo_b64}" class="login-logo-small">
-            <h2 class="login-main-title">
-                SELAMAT DATANG DI SISTEM KLASIFIKASI CALON PENERIMA PIP<br>
-                SMPN 12 PEMATANGSIANTAR
-            </h2>
-        </div>
-    """, unsafe_allow_html=True)
+#Jika belum login dan bukan halaman reset, paksa ke login
+if not st.session_state.login:
+    if st.session_state.page == "reset_password":
+        # Izinkan akses halaman reset password
+        col1, col2, col3 = st.columns([1, 1.2, 1])
+        with col2:
+            reset_password_ui()
+        st.stop()
+    else:
 
-    # LAYOUT UTAMA: BANNER KIRI KANDAS, LOGIN KANAN
-    col_banner, col_spacer, col_login = st.columns([1.7, 0.1, 1.2])
+        # HEADER KANDAS KIRI
+        logo_b64 = get_base64("assets/images/logo.png")
+        st.markdown(f"""
+            <div class="login-header">
+                <img src="data:image/png;base64,{logo_b64}" class="login-logo-small">
+                <h2 class="login-main-title">
+                    SELAMAT DATANG DI SISTEM KLASIFIKASI CALON PENERIMA PIP<br>
+                    SMPN 12 PEMATANGSIANTAR
+                </h2>
+            </div>
+        """, unsafe_allow_html=True)
 
-    with col_banner:
-            st.image("assets/images/Banner.png", use_column_width=True)
+        # LAYOUT UTAMA: BANNER KIRI KANDAS, LOGIN KANAN
+        col_banner, col_spacer, col_login = st.columns([1.7, 0.1, 1.2])
 
-    with col_login:
-        tab_admin, tab_siswa = st.tabs(["🔐 Admin", "🎓 Siswa"])
-        with tab_admin:
-            login_admin()
-        with tab_siswa:
-            st.markdown("<h3 style='text-align: center; color: #1e3a8a;'>Cek Status PIP</h3>", unsafe_allow_html=True)
-            nipd_input = st.text_input("Masukkan NIPD", max_chars=6, key="cek_nipd_input")
-            
-            if st.button("🔍 Cek Status", key="btn_cek_status_siswa"): 
-                if not nipd_input.isdigit() or len(nipd_input) != 6:
-                    st.error("NIPD harus 6 angka")
-                else:
-                    data_siswa = conn.execute("SELECT nama, hasil FROM siswa WHERE nipd=?", (nipd_input,)).fetchone()
-                    if not data_siswa:
-                        st.warning("⚠️ Data siswa tidak ditemukan")
+        with col_banner:
+                st.image("assets/images/Banner.png", use_column_width=True)
+
+        with col_login:
+            tab_admin, tab_siswa = st.tabs(["🔐 Admin", "🎓 Siswa"])
+            with tab_admin:
+                login_admin()
+            with tab_siswa:
+                st.markdown("<h3 style='text-align: center; color: #1e3a8a;'>Cek Status PIP</h3>", unsafe_allow_html=True)
+                nipd_input = st.text_input("Masukkan NIPD", max_chars=6, key="cek_nipd_input")
+                
+                if st.button("🔍 Cek Status", key="btn_cek_status_siswa"): 
+                    if not nipd_input.isdigit() or len(nipd_input) != 6:
+                        st.error("NIPD harus 6 angka")
                     else:
-                        status_teks = "LAYAK" if data_siswa["hasil"] == 1 else "TIDAK LAYAK"
-                        st.success(f"👤 {data_siswa['nama']} — Status: **{status_teks}**")
+                        data_siswa = conn.execute("SELECT nama, hasil FROM siswa WHERE nipd=?", (nipd_input,)).fetchone()
+                        if not data_siswa:
+                            st.warning("⚠️ Data siswa tidak ditemukan")
+                        else:
+                            status_teks = "LAYAK" if data_siswa["hasil"] == 1 else "TIDAK LAYAK"
+                            st.success(f"👤 {data_siswa['nama']} — Status: **{status_teks}**")
 
-    st.stop()
+        st.stop()
 # =====================================================
 # HALAMAN RESET PASSWORD
 # =====================================================
-elif st.session_state.page == "reset_password":
-    col1, col2, col3 = st.columns([1, 1.2, 1])
-    with col2:
-        reset_password_ui()
-    st.stop()
-
-#JIKA BELUM LOGIN TAPI BUKAN HALAMAN LOGIN/RESET - REDIRECT
-if not st.session_state.login and st.session_state.page not in ["login", "reset_password"]:
-    st.session_state.page = "login"
-    st.rerun()
 # =====================================================
 # DASHBOARD ADMIN (SETELAH LOGIN)
 # =====================================================
-if st.session_state.login:  
     st.sidebar.markdown("""
         <style>
             [data-testid="stSidebarNav"] {display: none;} 
