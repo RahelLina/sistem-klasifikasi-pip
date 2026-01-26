@@ -410,12 +410,12 @@ elif menu == "Klasifikasi Siswa":
             col_ortu1, col_ortu2 = st.columns(2)
             
             with col_ortu1:
-                p_ayah_raw = st.selectbox("Pekerjaan Ayah", ["Tidak Bekerja", "Buruh", "Pedagang Kecil", "Peternak", "Wiraswasta", "Karyawan Swasta", "PNS/TNI/POLRI", "Lainnya"])
+                p_ayah_raw = st.selectbox("Pekerjaan Ayah", ["Tidak Bekerja", "Buruh", "Petani", "Pedagang Kecil", "Peternak", "Wiraswasta", "Karyawan Swasta", "Karyawan BUMN", "PNS/TNI/POLRI", "Lainnya"])
                 g_ayah_raw = st.selectbox("Penghasilan Ayah/bln", ["Tidak Berpenghasilan", "<= Rp. 500.000", "Rp. 500,000 - Rp. 999,999", "Rp. 1,000,000 - Rp. 1,999,999", "Rp. 2,000,000 - Rp. 4,999,999", "Rp. 5,000,000 - Rp. 20,000,000"])
                 tanggungan_raw = st.selectbox("Jumlah Tanggungan", ["1", "2", "3", "4", "5", "6"])
 
             with col_ortu2:
-                p_ibu_raw = st.selectbox("Pekerjaan Ibu", ["Tidak Bekerja", "Buruh", "Pedagang Kecil", "Peternak", "Wiraswasta", "Karyawan Swasta", "PNS/TNI/POLRI", "Lainnya"])
+                p_ibu_raw = st.selectbox("Pekerjaan Ibu", ["Tidak Bekerja", "Buruh", "Petani", "Pedagang Kecil", "Peternak", "Wiraswasta", "Karyawan Swasta", "Karyawan BUMN", "PNS/TNI/POLRI", "Lainnya"])
                 g_ibu_raw = st.selectbox("Penghasilan Ibu/bln", ["Tidak Berpenghasilan", "<= Rp. 500.000", "Rp. 500,000 - Rp. 999,999", "Rp. 1,000,000 - Rp. 1,999,999", "Rp. 2,000,000 - Rp. 4,999,999", "Rp. 5,000,000 - Rp. 20,000,000"])
             st.markdown("---")
             
