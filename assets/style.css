@@ -189,3 +189,15 @@ div.stDownloadButton > button[kind="primary"]:hover {
     background-color: #1e3a8a !important; /* Biru lebih gelap */
     box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
 }
+
+/* Responsive untuk layar kecil */
+@media (max-width: 768px) {
+    .block-container {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+    
+    .login-main-title {
+        font-size: 18px !important;
+    }
+}
