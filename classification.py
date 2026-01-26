@@ -1,6 +1,14 @@
 import pandas as pd
 import joblib
 
+# ===== TAMBAHKAN PATCH COMPATIBILITY =====
+from sklearn.tree import DecisionTreeClassifier
+import sklearn
+
+# Patch untuk menangani model yang ditraining dengan versi lebih baru
+if not hasattr(DecisionTreeClassifier, 'monotonic_cst'):
+    print(f"⚠️ Warning: scikit-learn {sklearn.__version__} tidak support monotonic_cst")
+    DecisionTreeClassifier.monotonic_cst = None
 # =====================================================
 # LOAD MODEL
 # =====================================================
