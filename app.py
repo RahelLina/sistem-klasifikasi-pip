@@ -201,7 +201,6 @@ if not st.session_state.login:
 # =====================================================
 st.sidebar.markdown("""
     <style>
-        [data-testid="stSidebarNav"] {display: none;} 
         .sidebar-header {
             text-align: center; 
             font-size: 22px; 
