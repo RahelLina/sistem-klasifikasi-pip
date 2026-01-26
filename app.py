@@ -138,6 +138,12 @@ try:
 except Exception as e:
     pass  # Ignore error jika query_params tidak tersedia
 
+# Pastikan sidebar selalu render (agar hamburger menu muncul)
+with st.sidebar:
+    if not st.session_state.get("login", False):
+        st.markdown("### 🔐 Login Required")
+        st.info("Masuk untuk akses menu")
+
 # =====================================================
 # LOGIN PAGE
 # =====================================================
@@ -189,9 +195,7 @@ if not st.session_state.login:
                             st.success(f"👤 {data_siswa['nama']} — Status: **{status_teks}**")
 
         st.stop()
-# =====================================================
-# HALAMAN RESET PASSWORD
-# =====================================================
+
 # =====================================================
 # DASHBOARD ADMIN (SETELAH LOGIN)
 # =====================================================
