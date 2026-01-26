@@ -11,9 +11,6 @@ import os
 import joblib
 import time
 
-import sklearn
-st.sidebar.info(f"🔧 Scikit-learn version: {sklearn.__version__}")
-
 from auth import login_admin, reset_password_ui
 from database import conn
 from classification import predict, MAPPING, REVERSE_MAPPING
