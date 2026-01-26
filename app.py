@@ -139,6 +139,19 @@ except Exception as e:
     pass  # Ignore error jika query_params tidak tersedia
 
 # =====================================================
+# PAKSA SIDEBAR RENDER (AGAR HAMBURGER MUNCUL)
+# =====================================================
+# PENTING: Harus dipanggil SEBELUM st.stop() agar Streamlit Cloud mendeteksi sidebar
+if not st.session_state.login:
+    with st.sidebar:
+        st.markdown("""
+            <div style="text-align:center; padding:20px;">
+                <h3 style="color:#1e3a8a;">🔐 Area Login</h3>
+                <p style="color:#64748b; font-size:14px;">Silakan login untuk mengakses dashboard</p>
+            </div>
+        """, unsafe_allow_html=True)
+        
+# =====================================================
 # LOGIN PAGE
 # =====================================================
 #Jika belum login dan bukan halaman reset, paksa ke login
