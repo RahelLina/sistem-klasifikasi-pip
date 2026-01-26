@@ -35,6 +35,8 @@ def login_admin():
                     if hashed_input == admin_query["password"]:
                         st.session_state.login = True
                         st.session_state.username = admin_query["username"]
+                        st.session_state.page = "dashboard" 
+                        st.success("✅ Login berhasil! Redirect...")
                         st.rerun()
                     else:
                         st.error("Password salah!")
