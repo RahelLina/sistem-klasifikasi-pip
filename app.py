@@ -215,13 +215,13 @@ st.sidebar.markdown("""
     <style>
         .sidebar-header {
             text-align: center; 
-            font-size: 22px; 
+            font-size: 18px; 
             font-weight: bold; 
-            padding: 10px;
+            padding: 8px;
             background: #1e3a8a;
             color: white;
-            border-radius: 10px;
-            margin-bottom: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
         }
     </style>
     <div class="sidebar-header">📊 MENU UTAMA</div>
@@ -235,16 +235,17 @@ st.sidebar.markdown("---")
 
 if st.sidebar.button("🚪 LOGOUT", key="btn_logout_side"):
     st.session_state.login = False
+    st.session_state.page = "login"
     st.rerun()
 
 # --- HEADER DASHBOARD ---
 st.markdown(f"""
-    <div style="background: linear-gradient(90deg, #1e3a8a 0%, #3b82f6 100%); padding: 30px; border-radius: 15px; margin-bottom: 25px; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-        <h1 style="margin: 0; font-size: 32px; font-weight: 800; letter-spacing: 1px;">
+    <div style="background: linear-gradient(90deg, #1e3a8a 0%, #3b82f6 100%); padding: 20px; border-radius: 12px; margin-bottom: 20px; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
+        <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: 0.5px;">
             👋 SELAMAT DATANG
         </h1>
-        <hr style="margin: 15px 0; border: 0; border-top: 1px solid rgba(255,255,255,0.3);">
-        <p style="margin: 0; font-size: 18px; font-weight: 500; opacity: 0.9;">
+        <hr style="margin: 12px 0; border: 0; border-top: 1px solid rgba(255,255,255,0.3);">
+        <p style="margin: 0; font-size: 15px; font-weight: 500; opacity: 0.9;">
             SISTEM MANAJEMEN KLASIFIKASI PIP SMPN 12 PEMATANGSIANTAR
         </p>
     </div>
