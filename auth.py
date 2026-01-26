@@ -8,15 +8,6 @@ from datetime import datetime, timedelta
 from database import conn
 
 # =====================================================
-# PASTIKAN SIDEBAR SELALU ADA
-# =====================================================
-def ensure_sidebar_visible():
-    """Render minimal sidebar agar hamburger menu muncul"""
-    with st.sidebar:
-        st.markdown("### 🔐 Sistem Login")
-        st.info("Silakan login untuk melanjutkan")
-
-# =====================================================
 # KONFIGURASI EMAIL (DARI secrets.toml)
 # =====================================================
 EMAIL_SENDER = st.secrets.get("EMAIL_SENDER", "your_email@gmail.com")

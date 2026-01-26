@@ -138,12 +138,6 @@ try:
 except Exception as e:
     pass  # Ignore error jika query_params tidak tersedia
 
-# Pastikan sidebar selalu render (agar hamburger menu muncul)
-with st.sidebar:
-    if not st.session_state.get("login", False):
-        st.markdown("### 🔐 Login Required")
-        st.info("Masuk untuk akses menu")
-
 # =====================================================
 # LOGIN PAGE
 # =====================================================
