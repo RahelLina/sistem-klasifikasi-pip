@@ -20,7 +20,12 @@ from classification import predict, MAPPING, REVERSE_MAPPING
 st.set_page_config(
     page_title="SISTEM KLASIFIKASI PIP",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
+    menu_items={
+        'Get Help': None,
+        'Report a bug': None,
+        'About': None
+    }
 )
 
 # =====================================================
@@ -150,7 +155,7 @@ if not st.session_state.login:
                 <p style="color:#64748b; font-size:14px;">Silakan login untuk mengakses dashboard</p>
             </div>
         """, unsafe_allow_html=True)
-        
+
 # =====================================================
 # LOGIN PAGE
 # =====================================================

@@ -1,4 +1,23 @@
 /* =====================================================
+   PAKSA HAMBURGER MENU MUNCUL
+===================================================== */
+[data-testid="collapsedControl"] {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Pastikan sidebar container terlihat */
+[data-testid="stSidebar"] {
+    display: block !important;
+}
+
+/* Jangan sembunyikan header Streamlit */
+header[data-testid="stHeader"] {
+    display: block !important;
+}
+
+/* =====================================================
    1. GLOBAL RESET & BACKGROUND SOFT BLUE
 ===================================================== */
 * {
