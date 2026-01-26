@@ -80,8 +80,6 @@ if "page" not in st.session_state: st.session_state.page = "login"
 if "username" not in st.session_state: st.session_state.username = None
 if "menu" not in st.session_state: st.session_state.menu = "Statistik PIP"
 
-if not st.session_state.login and st.session_state.page != "reset_password":
-    st.session_state.page = "login"
 # =====================================================
 # FUNGSI EXPORT
 # =====================================================
@@ -191,6 +189,13 @@ elif st.session_state.page == "reset_password":
         reset_password_ui()
     st.stop()
 
+#===== TAMBAHKAN ELSE INI (PENTING!) =====
+else:
+    # Jika tidak login DAN bukan reset password, paksa ke login
+    st.session_state.page = "login"
+    st.session_state.login = False
+    st.rerun()
+    
 # =====================================================
 # DASHBOARD ADMIN (SETELAH LOGIN)
 # =====================================================
