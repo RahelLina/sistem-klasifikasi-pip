@@ -18,7 +18,6 @@ APP_URL = st.secrets.get("APP_URL", "http://localhost:8501")
 # LOGIN ADMIN
 # =====================================================
 def login_admin():
-    ensure_sidebar_visible()
     st.markdown("<h4 style='color:#1e3a8a; margin-bottom:5px;'>Login Admin</h4>", unsafe_allow_html=True)
     
     username = st.text_input("Username", placeholder="Masukkan username", key="login_user")
@@ -54,7 +53,6 @@ def login_admin():
 # RESET PASSWORD PAGE
 # =====================================================
 def reset_password_ui():
-    ensure_sidebar_visible()
     if "reset_token" in st.session_state:
         st.info(f"🔍 Debug: Token tersimpan = {st.session_state.reset_token[:20]}...")
 
