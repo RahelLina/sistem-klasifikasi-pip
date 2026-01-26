@@ -1,4 +1,4 @@
-z/* =====================================================
+/* =====================================================
    1. GLOBAL RESET & BACKGROUND SOFT BLUE
 ===================================================== */
 * {
@@ -21,7 +21,7 @@ footer {
 
 /* RESET TOTAL AGAR KANDAS KE KIRI, ATAS, BAWAH */
 .block-container {
-    padding-top: 0rem !important;
+    padding-top: 0.5rem !important;
     padding-bottom: 0rem !important;
     padding-left: 1rem !important;
     padding-right: 2rem !important; /* Sisakan sedikit kanan agar tidak terpotong */
@@ -29,25 +29,12 @@ footer {
 }
 
 [data-testid="stAppViewBlockContainer"] {
-    padding-top: 0rem !important;
-    margin-top: 0rem !important;   /* Hilangkan margin */
+    padding-top: 10px !important;
 }
 /* =====================================================
    2. HEADER (LOGO + JUDUL SEJAJAR & SEIMBANG)
 ===================================================== */
-/* Header Streamlit tetap terlihat tapi compact */
-header[data-testid="stHeader"] {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 999 !important;
-    height: auto !important;
-    min-height: 2.5rem !important;
-    padding: 0.25rem 1rem !important;
-    background-color: #f0f7ff !important;
-}
-
 .login-header {
-    margin-top: 3.5rem !important;  /* ← TAMBAHKAN INI */
     display: flex;
     align-items: center;
     gap: 20px;
