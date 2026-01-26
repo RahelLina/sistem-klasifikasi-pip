@@ -52,8 +52,7 @@ def login_admin():
 # =====================================================
 def reset_password_ui():
     if "reset_token" in st.session_state:
-        st.markdown("<h3 style='text-align: center; color: #1e3a8a;'> 🔐 Buat Password Baru</h3>", unsafe_allow_html=True)
-        st.info("✅Token valid. Silakan masukkan password baru Anda.")
+        st.info(f"🔍 Debug: Token tersimpan = {st.session_state.reset_token[:20]}...")
 
         new_pass = st.text_input("Password Baru", type="password", key="new_pass_reset", placeholder="Minimal 6 karakter")
         confirm_pass = st.text_input("Konfirmasi Password Baru", type="password", key="confirm_pass_reset", placeholder="Ulangi password baru")
@@ -61,40 +60,62 @@ def reset_password_ui():
 
         with col1:
             if st.button("💾 SIMPAN PASSWORD BARU", key="btn_save_new_pass", use_container_width=True):
+            # ===== VALIDASI INPUT =====
                 if not new_pass or not confirm_pass:
-                    st.error("❌Password wajib diisi")
-                    return
+                    st.error("❌ Password wajib diisi")
+                    st.stop()
+                
                 if len(new_pass) < 6:
                     st.error("❌ Password minimal 6 karakter")
-                    return
+                    st.stop()
+                
                 if new_pass != confirm_pass:
-                    st.error("❌Konfirmasi password tidak sama")
-                    return
+                    st.error("❌ Konfirmasi password tidak sama")
+                    st.stop()
 
-                token_data = conn.execute(
-                    "SELECT username, expired_at FROM password_reset WHERE token=?",
-                    (st.session_state.reset_token,)
-                ).fetchone()
+                # ===== AMBIL TOKEN DARI SESSION =====
+                current_token = st.session_state.get("reset_token", None)
+                
+                if not current_token:
+                    st.error("❌ Token tidak ditemukan. Silakan request ulang link reset.")
+                    st.stop()
 
+                # ===== VALIDASI TOKEN DI DATABASE =====
+                try:
+                    token_data = conn.execute(
+                        "SELECT username, expired_at FROM password_reset WHERE token=?",
+                        (current_token,)
+                    ).fetchone()
+                except Exception as e:
+                    st.error(f"❌ Error database: {e}")
+                    st.stop()
+
+                # ===== CEK TOKEN VALID =====
                 if not token_data:
-                    st.error("❌ Token tidak valid")
-                    return
-
+                    st.error("❌ Token tidak valid atau sudah digunakan")
+                    st.stop()
+                
+                # ===== CEK TOKEN EXPIRED =====
                 if datetime.now() > datetime.fromisoformat(token_data["expired_at"]):
-                    st.error("❌ Token sudah kedaluwarsa (berlaku 15 menit)")
-                    conn.execute("DELETE FROM password_reset WHERE token=?", (st.session_state.reset_token,))
+                    st.error("❌ Token sudah kedaluwarsa (berlaku 15 menit). Silakan request ulang.")
+                    conn.execute("DELETE FROM password_reset WHERE token=?", (current_token,))
                     conn.commit()
-                    return
+                    st.stop()
 
+                # ===== UPDATE PASSWORD =====
                 hashed = hashlib.sha256(new_pass.encode()).hexdigest()
                 conn.execute("UPDATE admin SET password=? WHERE username=?", (hashed, token_data["username"]))
-                conn.execute("DELETE FROM password_reset WHERE token=?", (st.session_state.reset_token,))
+                conn.execute("DELETE FROM password_reset WHERE token=?", (current_token,))
                 conn.commit()
 
-                st.success("✅ Password diperbarui! Silakan login.")
-                del st.session_state.reset_token
+                st.success("✅ Password berhasil diperbarui! Silakan login dengan password baru.")
+                
+                # Hapus token dan redirect ke login
+                if "reset_token" in st.session_state:
+                    del st.session_state.reset_token
                 st.session_state.page = "login"
-
+                
+                # Tunggu 2 detik lalu redirect
                 import time
                 time.sleep(2)
                 st.rerun()

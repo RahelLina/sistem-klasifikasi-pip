@@ -123,13 +123,22 @@ def map_tanggungan(val):
 # =====================================================
 # CEK TOKEN DARI URL (UNTUK RESET PASSWORD)
 # =====================================================
-import streamlit as st
 
 # Ambil query parameter dari URL
-query_params = st.query_params
-if "token" in query_params and "reset_token" not in st.session_state:
-    st.session_state.reset_token = query_params["token"]
-    st.session_state.page = "reset_password"
+try:
+    query_params = st.query_params
+    
+    # Jika ada token di URL dan belum disimpan di session
+    if "token" in query_params:
+        token_from_url = query_params["token"]
+        
+        # Simpan token ke session state
+        if "reset_token" not in st.session_state or st.session_state.reset_token != token_from_url:
+            st.session_state.reset_token = token_from_url
+            st.session_state.page = "reset_password"
+            
+except Exception as e:
+    pass  # Ignore error jika query_params tidak tersedia
 
 # =====================================================
 # LOGIN PAGE
