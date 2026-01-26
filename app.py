@@ -189,13 +189,10 @@ elif st.session_state.page == "reset_password":
         reset_password_ui()
     st.stop()
 
-#===== TAMBAHKAN ELSE INI (PENTING!) =====
-else:
-    # Jika tidak login DAN bukan reset password, paksa ke login
+#JIKA BELUM LOGIN TAPI BUKAN HALAMAN LOGIN/RESET - REDIRECT
+if not st.session_state.login and st.session_state.page not in ["login", "reset_password"]:
     st.session_state.page = "login"
-    st.session_state.login = False
     st.rerun()
-    
 # =====================================================
 # DASHBOARD ADMIN (SETELAH LOGIN)
 # =====================================================

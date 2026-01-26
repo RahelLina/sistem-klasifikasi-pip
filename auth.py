@@ -36,11 +36,6 @@ def login_admin():
                         st.session_state.login = True
                         st.session_state.username = admin_query["username"]
                         st.session_state.page = "dashboard" 
-
-                        # DEBUG: Tampilkan status session
-                        st.write("DEBUG - Login state:", st.session_state.login)
-                        st.write("DEBUG - Username:", st.session_state.username)
-                        
                         st.success("✅ Login berhasil! Redirect...")
                         st.rerun()
                     else:
