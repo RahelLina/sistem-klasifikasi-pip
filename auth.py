@@ -52,38 +52,58 @@ def login_admin():
 # =====================================================
 def reset_password_ui():
     if "reset_token" in st.session_state:
-        st.markdown("<h3 style='text-align: center; color: #1e3a8a;'>Buat Password Baru</h3>", unsafe_allow_html=True)
-        st.info("Token valid. Silakan masukkan password baru Anda.")
+        st.markdown("<h3 style='text-align: center; color: #1e3a8a;'> 🔐 Buat Password Baru</h3>", unsafe_allow_html=True)
+        st.info("✅Token valid. Silakan masukkan password baru Anda.")
 
-        new_pass = st.text_input("Password Baru", type="password", key="new_pass_reset")
-        confirm_pass = st.text_input("Konfirmasi Password Baru", type="password", key="confirm_pass_reset")
+        new_pass = st.text_input("Password Baru", type="password", key="new_pass_reset", placeholder="Minimal 6 karakter")
+        confirm_pass = st.text_input("Konfirmasi Password Baru", type="password", key="confirm_pass_reset", placeholder="Ulangi password baru")
+        col1, col2 = st.columns(2)
 
-        if st.button("💾 SIMPAN PASSWORD BARU", key="btn_save_new_pass"):
-            if not new_pass or not confirm_pass:
-                st.error("Password wajib diisi")
-                return
-            if new_pass != confirm_pass:
-                st.error("Konfirmasi password tidak sama")
-                return
+        with col1:
+            if st.button("💾 SIMPAN PASSWORD BARU", key="btn_save_new_pass", use_container_width=True):
+                if not new_pass or not confirm_pass:
+                    st.error("❌Password wajib diisi")
+                    return
+                if len(new_pass) < 6:
+                    st.error("❌ Password minimal 6 karakter")
+                    return
+                if new_pass != confirm_pass:
+                    st.error("❌Konfirmasi password tidak sama")
+                    return
 
-            token_data = conn.execute(
-                "SELECT username, expired_at FROM password_reset WHERE token=?",
-                (st.session_state.reset_token,)
-            ).fetchone()
+                token_data = conn.execute(
+                    "SELECT username, expired_at FROM password_reset WHERE token=?",
+                    (st.session_state.reset_token,)
+                ).fetchone()
 
-            if not token_data or datetime.now() > datetime.fromisoformat(token_data["expired_at"]):
-                st.error("Token tidak valid atau sudah kedaluwarsa")
-                return
+                if not token_data:
+                    st.error("❌ Token tidak valid")
+                    return
 
-            hashed = hashlib.sha256(new_pass.encode()).hexdigest()
-            conn.execute("UPDATE admin SET password=? WHERE username=?", (hashed, token_data["username"]))
-            conn.execute("DELETE FROM password_reset WHERE token=?", (st.session_state.reset_token,))
-            conn.commit()
+                if datetime.now() > datetime.fromisoformat(token_data["expired_at"]):
+                    st.error("❌ Token sudah kedaluwarsa (berlaku 15 menit)")
+                    conn.execute("DELETE FROM password_reset WHERE token=?", (st.session_state.reset_token,))
+                    conn.commit()
+                    return
 
-            st.success("✅ Password diperbarui! Silakan login.")
-            st.session_state.page = "login"
-            if "reset_token" in st.session_state: del st.session_state.reset_token
-            st.rerun()
+                hashed = hashlib.sha256(new_pass.encode()).hexdigest()
+                conn.execute("UPDATE admin SET password=? WHERE username=?", (hashed, token_data["username"]))
+                conn.execute("DELETE FROM password_reset WHERE token=?", (st.session_state.reset_token,))
+                conn.commit()
+
+                st.success("✅ Password diperbarui! Silakan login.")
+                del st.session_state.reset_token
+                st.session_state.page = "login"
+
+                import time
+                time.sleep(2)
+                st.rerun()
+        with col2:
+            if st.button("❌ BATAL", key="btn_cancel_reset", use_container_width=True):
+                if "reset_token" in st.session_state:
+                    del st.session_state.reset_token
+                st.session_state.page = "login"
+                st.rerun()
 
     else:
         st.markdown("<h2 style='text-align:center;'>Lupa Kata Sandi</h2>", unsafe_allow_html=True)
@@ -91,9 +111,9 @@ def reset_password_ui():
     
         email = st.text_input("Email Terdaftar", placeholder="contoh@gmail.com", key="input_email_reset")
 
-        if st.button("📤 KIRIM LINK RESET", key="btn_send_reset"):
+        if st.button("📤 KIRIM LINK RESET", key="btn_send_reset",use_container_width=True):
             if not email:
-                st.error("Masukkan email terlebih dahulu!")
+                st.error("❌Masukkan email terlebih dahulu!")
                 return
 
             user = conn.execute("SELECT * FROM admin WHERE email=?", (email,)).fetchone()
@@ -114,13 +134,15 @@ def reset_password_ui():
                     st.success(f"✅ Link reset berhasil dikirim ke {email}")
                 else:
                     st.error("❌ Gagal mengirim email. Pastikan konfigurasi email sudah benar.")
-
-    # Tombol Kembali (di luar blok else agar selalu muncul)
-    st.markdown("---")
-    if st.button("⬅️ KEMBALI KE LOGIN", key="btn_back_to_login"):
-        st.session_state.page = "login"
-        if "reset_token" in st.session_state: del st.session_state.reset_token
-        st.rerun()
+            else:
+                st.error("❌ Email tidak ditemukan dalam sistem kami.")
+        # Tombol Kembali (di luar blok else agar selalu muncul)
+        st.markdown("---")
+        if st.button("⬅️ KEMBALI KE LOGIN", key="btn_back_to_login",use_container_width=True):
+            st.session_state.page = "login"
+            if "reset_token" in st.session_state: 
+                del st.session_state.reset_token
+            st.rerun()
 # =====================================================
 # FUNGSI KIRIM EMAIL
 # =====================================================

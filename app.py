@@ -120,6 +120,20 @@ def map_tanggungan(val):
 # =====================================================
 # LOGIN PAGE
 # =====================================================
+# =====================================================
+# CEK TOKEN DARI URL (UNTUK RESET PASSWORD)
+# =====================================================
+import streamlit as st
+
+# Ambil query parameter dari URL
+query_params = st.query_params
+if "token" in query_params and "reset_token" not in st.session_state:
+    st.session_state.reset_token = query_params["token"]
+    st.session_state.page = "reset_password"
+
+# =====================================================
+# LOGIN PAGE
+# =====================================================
 if not st.session_state.login and st.session_state.page == "login":
     # HEADER KANDAS KIRI
     logo_b64 = get_base64("assets/images/logo.png")
