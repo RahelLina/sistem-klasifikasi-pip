@@ -214,10 +214,6 @@ if st.session_state.login:
     menu = st.sidebar.radio("Menu Utama", options, index=index, label_visibility="collapsed")
 
     st.sidebar.markdown("---")
-    # ===== TAMBAHKAN INFO DEBUG DI SINI =====
-    import sklearn
-    st.sidebar.info(f"🔧 Scikit-learn: {sklearn.__version__}")
-    st.sidebar.markdown("---")
 
     if st.sidebar.button("🚪 LOGOUT", key="btn_logout_side"):
         st.session_state.login = False
