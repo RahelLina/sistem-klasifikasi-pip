@@ -40,7 +40,7 @@ footer {
 
 /* RESET TOTAL AGAR KANDAS KE KIRI, ATAS, BAWAH */
 .block-container {
-    padding-top: 1rem !important;
+    padding-top: 2.5rem !important;
     padding-bottom: 1rem !important;
     padding-left: 2rem !important;
     padding-right: 2rem !important; /* Sisakan sedikit kanan agar tidak terpotong */
@@ -48,7 +48,7 @@ footer {
 }
 
 [data-testid="stAppViewBlockContainer"] {
-    padding-top: 1rem !important;
+    padding-top: 2.5rem !important;
 }
 /* =====================================================
    2. HEADER (LOGO + JUDUL SEJAJAR & SEIMBANG)
@@ -56,20 +56,21 @@ footer {
 .login-header {
     display: flex;
     align-items: center;
-    gap: 20px;
-    margin-bottom: 20px;
+    gap: 15px;
+    margin-bottom: 15px;
+    margin-top: 10px;
     margin-left: 0px !important;
 }
 
 .login-logo-small {
-    height: 90px !important;
+    height: 70px !important;
 }
 
 .login-main-title {
-    font-size: 24px !important;
-    font-weight: 850;
+    font-size: 20px !important;
+    font-weight: 700;
     color: #1e3a8a;
-    line-height: 1.2;
+    line-height: 1.3;
     margin: 0 !important;
 }
 /* =====================================================
@@ -152,7 +153,6 @@ div[data-testid="stTextInput"] div[data-baseweb="input"] {
 }
 /* HILANGKAN SPASI KOSONG BAWAH */
 footer {display: none !important;}
-header {display: none !important;}
 
 /* Memperindah Tabel Data */
 [data-testid="stDataFrame"] {
