@@ -31,6 +31,7 @@ st.set_page_config(
 # =====================================================
 # FUNGSI HELPER & CSS
 # =====================================================
+
 def local_css(file_name):
     """Membaca file CSS dari folder root atau assets"""
     paths = [file_name, os.path.join("assets", file_name)]
@@ -45,12 +46,203 @@ def get_base64(path):
         with open(path, "rb") as f: 
             return base64.b64encode(f.read()).decode()
     return ""
+
+def classify_and_insert_row(row, cursor):
+    """
+    Memetakan 1 baris dari Excel (format Klasifikasi_PIP.xlsx) ke database,
+    menjalankan prediksi RF, lalu INSERT.
+    """
+    try:
+        # --- 1. Ambil NIPD & Nama ---
+        nipd_raw = row.get('NIPD') or row.get('nipd') or 0
+        nama_val = str(row.get('Nama') or row.get('nama') or '').strip()
+        
+        if not nipd_raw or not nama_val or nama_val == 'nan':
+            return False
+        
+        nipd_val = str(int(float(nipd_raw)))
+
+        # --- 2. Cek duplikat ---
+        existing = cursor.execute("SELECT id FROM siswa WHERE nipd=?", (nipd_val,)).fetchone()
+        if existing:
+            return False
+
+        # --- 3. Ambil nilai mentah dari Excel ---
+        # Kolom pekerjaan/penghasilan ada di Unnamed karena Excel pakai merged header
+        p_ayah_raw = str(row.get('Pekerjaan_Ayah') or row.get('Unnamed: 16') or 'Tidak Bekerja').strip()
+        g_ayah_raw = str(row.get('Penghasilan_Ayah') or row.get('Unnamed: 17') or 'Tidak Berpenghasilan').strip()
+        p_ibu_raw  = str(row.get('Pekerjaan_Ibu') or row.get('Unnamed: 21') or 'Tidak Bekerja').strip()
+        g_ibu_raw  = str(row.get('Penghasilan_Ibu') or row.get('Unnamed: 22') or 'Tidak Berpenghasilan').strip()
+        tang_raw   = str(row.get('Jumlah_Tanggungan') or row.get('Jumlah Tanggungan') or '1').strip()
+        # Hapus ".0" jika tanggungan berupa float
+        if tang_raw.endswith('.0'):
+            tang_raw = tang_raw[:-2]
+
+        # Kolom lingkungan — coba nama dengan spasi dan underscore
+        def get_col(r, *keys):
+            for k in keys:
+                v = r.get(k)
+                if v is not None and str(v).strip() not in ['', 'nan', 'None']:
+                    return str(v).strip()
+            return None
+
+        jenis_tinggal   = get_col(row, 'Jenis_Tinggal', 'Jenis Tinggal')
+        kepemilikan     = get_col(row, 'Kepemilikan_Rumah', 'Kepemilikan Rumah')
+        alat_trans      = get_col(row, 'Alat_Transportasi', 'Alat Transportasi')
+        kondisi_kel     = get_col(row, 'Kondisi_Keluarga', 'Kondisi Keluarga')
+        penerima_kip    = get_col(row, 'Penerima_KIP', 'Penerima KIP')
+        penerima_kps    = get_col(row, 'Penerima_KPS', 'Penerima KPS')
+
+        # --- 4. Normalisasi nilai Excel → format yang dikenali MAPPING ---
+
+        def norm_pekerjaan(val):
+            """Normalisasi variasi penulisan pekerjaan dari Excel"""
+            val = val.strip()
+            mapping_norm = {
+                'tidak bekerja': 'Tidak Bekerja',
+                'tidak dapat diterapkan': 'Tidak Bekerja',
+                'buruh': 'Buruh',
+                'petani': 'Petani',
+                'pedagang kecil': 'Pedagang Kecil',
+                'pedagang': 'Pedagang Kecil',
+                'peternak': 'Peternak',
+                'nelayan': 'Nelayan',
+                'wiraswasta': 'Wiraswasta',
+                'karyawan swasta': 'Karyawan Swasta',
+                'karyawan bumn': 'Karyawan BUMN',
+                'pns/tni/polri': 'PNS/TNI/POLRI',
+                'pns': 'PNS/TNI/POLRI',
+                'tni': 'PNS/TNI/POLRI',
+                'polri': 'PNS/TNI/POLRI',
+                'lainnya': 'Lainnya',
+                'sopir': 'Lainnya',
+            }
+            return mapping_norm.get(val.lower(), 'Tidak Bekerja')
+
+        def norm_penghasilan(val):
+            """Normalisasi variasi penulisan penghasilan dari Excel"""
+            val = val.strip().lower()
+            if 'tidak' in val or val in ['', 'nan']:
+                return 'Tidak Berpenghasilan'
+            if 'kurang dari' in val or '<= 500' in val or '500.000' in val and 'kurang' in val:
+                return '<= Rp. 500.000'
+            if '500,000' in val and '999' in val:
+                return 'Rp. 500,000 - Rp. 999,999'
+            if '1,000,000' in val and '1,999' in val:
+                return 'Rp. 1,000,000 - Rp. 1,999,999'
+            if '2,000,000' in val and '4,999' in val:
+                return 'Rp. 2,000,000 - Rp. 4,999,999'
+            if '5,000,000' in val or '20,000,000' in val:
+                return 'Rp. 5,000,000 - Rp. 20,000,000'
+            # Coba cocokkan "Kurang dari Rp. 500,000"
+            if 'kurang' in val:
+                return '<= Rp. 500.000'
+            return 'Tidak Berpenghasilan'
+
+        def norm_jenis_tinggal(val):
+            if val is None: return list(MAPPING['Jenis_Tinggal'].keys())[0]
+            v = val.lower()
+            if 'orang tua' in v or 'orangtua' in v: return 'Bersama orang tua'
+            if 'wali' in v: return 'Wali'
+            if 'kost' in v or 'kos' in v: return 'Kost'
+            if 'asrama' in v: return 'Asrama'
+            # Kembalikan nilai asli jika ada di MAPPING
+            if val in MAPPING['Jenis_Tinggal']:
+                return val
+            return list(MAPPING['Jenis_Tinggal'].keys())[0]
+
+        def norm_kepemilikan(val):
+            if val is None: return list(MAPPING['Kepemilikan_Rumah'].keys())[0]
+            v = val.lower()
+            if 'sendiri' in v or 'milik' in v: return 'Milik Sendiri'
+            if 'sewa' in v or 'kontrak' in v: return 'Sewa'
+            if val in MAPPING['Kepemilikan_Rumah']:
+                return val
+            return list(MAPPING['Kepemilikan_Rumah'].keys())[0]
+
+        def norm_alat_trans(val):
+            if val is None: return list(MAPPING['Alat_Transportasi'].keys())[0]
+            v = val.lower()
+            if 'jalan kaki' in v or 'kaki' in v: return 'Jalan kaki'
+            if 'kendaraan pribadi' in v or 'pribadi' in v: return 'Kendaraan Pribadi'
+            if 'angkutan umum' in v or 'umum' in v: return 'Angkutan umum'
+            if 'sepeda' in v and 'motor' not in v: return 'Sepeda'
+            if val in MAPPING['Alat_Transportasi']:
+                return val
+            return list(MAPPING['Alat_Transportasi'].keys())[0]
+
+        def norm_kondisi(val):
+            if val is None: return list(MAPPING['Kondisi_Keluarga'].keys())[0]
+            v = val.lower()
+            if 'lengkap' in v: return 'Lengkap'
+            if 'yatim piatu' in v: return 'Yatim Piatu'
+            if 'yatim' in v: return 'Yatim'
+            if 'piatu' in v: return 'Piatu'
+            if val in MAPPING['Kondisi_Keluarga']:
+                return val
+            return list(MAPPING['Kondisi_Keluarga'].keys())[0]
+
+        def norm_kip_kps(val):
+            if val is None: return list(MAPPING.get('Penerima_KIP', {'Tidak': 0}).keys())[0]
+            v = str(val).lower().strip()
+            if v in ['ya', 'yes', '1', 'true']: return 'Ya'
+            if v in ['tidak', 'no', '0', 'false']: return 'Tidak'
+            if val in MAPPING.get('Penerima_KIP', {}):
+                return val
+            return 'Tidak'
+
+        # --- 5. Mapping ke kategori model ---
+        final_categories = {
+            "Pekerjaan_Ayah":    map_pekerjaan(norm_pekerjaan(p_ayah_raw)),
+            "Penghasilan_Ayah":  map_penghasilan(norm_penghasilan(g_ayah_raw)),
+            "Pekerjaan_Ibu":     map_pekerjaan(norm_pekerjaan(p_ibu_raw)),
+            "Penghasilan_Ibu":   map_penghasilan(norm_penghasilan(g_ibu_raw)),
+            "Jumlah_Tanggungan": map_tanggungan(tang_raw),
+            "Jenis_Tinggal":     norm_jenis_tinggal(jenis_tinggal),
+            "Kepemilikan_Rumah": norm_kepemilikan(kepemilikan),
+            "Alat_Transportasi": norm_alat_trans(alat_trans),
+            "Kondisi_Keluarga":  norm_kondisi(kondisi_kel),
+            "Penerima_KIP":      norm_kip_kps(penerima_kip),
+            "Penerima_KPS":      norm_kip_kps(penerima_kps),
+        }
+
+        # --- 6. Validasi semua nilai ada di MAPPING ---
+        numeric_vals = {}
+        for k, v in final_categories.items():
+            if k not in MAPPING:
+                return False
+            if v not in MAPPING[k]:
+                # Pakai default pertama jika tidak cocok
+                v = list(MAPPING[k].keys())[0]
+                final_categories[k] = v
+            numeric_vals[k] = MAPPING[k][v]
+
+        # --- 7. Prediksi ---
+        hasil_prediksi = predict(numeric_vals)
+        val_hasil_db   = str(hasil_prediksi)
+
+        # --- 8. INSERT ---
+        columns      = ", ".join(final_categories.keys())
+        placeholders = ", ".join(["?"] * len(final_categories))
+        query = f"INSERT INTO siswa (nipd, nama, {columns}, hasil, created_at) VALUES (?, ?, {placeholders}, ?, ?)"
+
+        cursor.execute(query, (
+            nipd_val,
+            nama_val,
+            *final_categories.values(),
+            val_hasil_db,
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        ))
+        return True
+
+    except Exception as e:
+        return False
 # =====================================================
 # FUNGSI HELPER UNTUK LOGO
 # =====================================================
 def get_stat_data():
     try:
-        df = pd.read_sql("SELECT hasil FROM siswa", conn)
+        df = pd.read_sql("SELECT * FROM siswa ORDER BY id DESC", conn)
         return df
     except Exception as e:
         st.error(f"Error Database: {e}")
@@ -59,7 +251,7 @@ def get_stat_data():
 def get_safe_data():
     try:
         # Mengambil data dengan nama kolom asli dari database
-        df = pd.read_sql("SELECT * FROM siswa ORDER BY id DESC", conn)
+        df = pd.read_sql("SELECT * FROM siswa ORDER BY id ASC", conn)
         return df
     except Exception as e:
         st.error(f"Error Database: {e}")
@@ -357,7 +549,6 @@ if menu == "Statistik PIP":
 
 # --- MENU: KLASIFIKASI ---
 elif menu == "Klasifikasi Siswa":
-    # PERBAIKAN: Definisikan variabel nama di awal agar tidak kuning (NameError)
     nama = "" 
     nipd = ""
         
@@ -365,6 +556,78 @@ elif menu == "Klasifikasi Siswa":
 
     # --- TAB 1: VIEW DATA TERKLASIFIKASI ---
     with tab_view:
+        
+        # ===== FITUR BARU: IMPORT DATA DARI EXCEL =====
+        with st.expander("📤 Import Data dari Excel", expanded=False):
+            st.markdown("""
+            **Format kolom Excel yang dikenali:**  
+            `NIPD`, `Nama`, `Pekerjaan_Ayah`, `Penghasilan_Ayah`, `Pekerjaan_Ibu`, `Penghasilan_Ibu`,  
+            `Jumlah_Tanggungan`, `Jenis_Tinggal`, `Kepemilikan_Rumah`, `Alat_Transportasi`,  
+            `Kondisi_Keluarga`, `Penerima_KIP`, `Penerima_KPS`
+            
+            ⚠️ Kolom selain di atas akan **diabaikan**. Data akan **diklasifikasikan otomatis** oleh model.
+            """)
+
+            uploaded_file = st.file_uploader("Upload file Excel (.xlsx)", type=["xlsx"], key="uploader_import")
+
+            if uploaded_file is not None:
+                try:
+                    df_import = pd.read_excel(uploaded_file)
+                    # Normalisasi nama kolom: strip spasi & title-case
+                    df_import.columns = [c.strip() for c in df_import.columns]
+
+                    # ===== PERBAIKAN: Skip baris 0 jika itu sub-header =====
+                    # Deteksi: jika baris pertama berisi teks seperti "Nama ", "Tahun Lahir" (bukan data nyata)
+                    first_row = df_import.iloc[0]
+                    nipd_first = first_row.get('NIPD') or first_row.get('nipd')
+                    if nipd_first is None or str(nipd_first).strip() in ['', 'nan', 'None']:
+                        df_import = df_import.iloc[1:].reset_index(drop=True)
+                    # =====
+
+                    st.write("**Preview 10 baris pertama:**")
+                    st.dataframe(df_import.head(10), use_container_width=True)
+
+                    col_imp1, col_imp2 = st.columns(2)
+                    with col_imp1:
+                        st.info(f"📊 Total **{len(df_import)}** baris data ditemukan.")
+                    with col_imp2:
+                        if st.button("✅ Konfirmasi Import & Klasifikasi", type="primary", use_container_width=True):
+                            cursor      = conn.cursor()
+                            success_cnt = 0
+                            skip_cnt    = 0
+
+                            # Progress bar
+                            progress_bar = st.progress(0, text="Memproses data...")
+                            total_rows   = len(df_import)
+
+                            for i, (_, row) in enumerate(df_import.iterrows()):
+                                ok = classify_and_insert_row(row, cursor)
+                                if ok:
+                                    success_cnt += 1
+                                else:
+                                    skip_cnt += 1
+                                # Update progress setiap 10 baris
+                                if i % 10 == 0 or i == total_rows - 1:
+                                    progress_bar.progress(
+                                        int((i + 1) / total_rows * 100),
+                                        text=f"Memproses {i+1}/{total_rows}..."
+                                    )
+
+                            conn.commit()
+                            st.cache_data.clear()
+                            progress_bar.empty()
+
+                            st.success(
+                                f"✅ Import selesai! **{success_cnt}** data berhasil diklasifikasi & disimpan. "
+                                f"**{skip_cnt}** data dilewati (duplikat/format tidak cocok)."
+                            )
+                            time.sleep(1)
+                            st.rerun()
+
+                except Exception as e:
+                    st.error(f"Gagal membaca file: {e}")
+        # ===== AKHIR FITUR IMPORT =====
+
         df_raw = get_safe_data()
             
         if not df_raw.empty:
@@ -373,11 +636,27 @@ elif menu == "Klasifikasi Siswa":
             if 'hasil' in df_display.columns:
                 df_display['hasil'] = df_display['hasil'].fillna(0).astype(int)
                 df_display['hasil'] = df_display['hasil'].map({1: "LAYAK", 0: "TIDAK LAYAK"})
+            
+            id_series = df_display['id'].copy()  # simpan dulu sebelum di-rename/drop
+
+            # Rename kolom (kecuali id, nipd, nama)
             df_display.columns = [c.replace("_", " ").title() if c not in ['id', 'nipd', 'nama'] else c for c in df_display.columns]
 
-            st.markdown("### 📋 Tabel Database & Aksi")
+            # ===== TAMBAHAN: Kolom No urut mulai dari 1 (terpisah dari ID database) =====
+            df_display.insert(0, "No", range(1, len(df_display) + 1))
+            df_display = df_display.drop(columns=['id'])
+
             st.info("💡 **Tips:** Centang kolom 'Pilih' untuk menghapus data.")
-                
+            
+            st.markdown("""
+                <style>
+                    [data-testid="stDataFrameToolbar"] 
+                    [data-testid="stElementToolbar"] {
+                        display: none !important;
+                    }
+                </style>
+            """, unsafe_allow_html=True)
+
             df_display.insert(0, "Pilih", False)
             cols = ["Pilih"] + [c for c in df_display.columns if c != "Pilih"]
             df_display = df_display[cols]
@@ -388,19 +667,23 @@ elif menu == "Klasifikasi Siswa":
                 hide_index=True,
                 use_container_width=True,
                 column_config={
+                    "No": st.column_config.NumberColumn("No", disabled=True),  
                     "Pilih": st.column_config.CheckboxColumn("Pilih", default=False),
-                    "id": st.column_config.NumberColumn("ID", disabled=True),
                     "nipd": st.column_config.TextColumn("NIPD", disabled=True),
                     "nama": st.column_config.TextColumn("Nama Siswa", disabled=True),
-                    "hasil": st.column_config.TextColumn("Status Kelayakan", disabled=True)
-                }
+                    "Hasil": st.column_config.TextColumn("Status Kelayakan", disabled=True)
+                } ,
+                disabled=["NO",  "nipd", "nama", "Hasil"],
             )
-
+            
             st.markdown("<br>", unsafe_allow_html=True)
-            col_del, col_down = st.columns(2) 
 
-            target_col_id = "id" if "id" in edited_df.columns else "id"
-            selected_ids = edited_df[edited_df["Pilih"] == True][target_col_id].tolist()
+            # ===== LAYOUT DIPERLUAS: 3 KOLOM =====
+            selected_mask = edited_df["Pilih"] == True
+            selected_indices = edited_df[selected_mask].index.tolist()
+            selected_ids = id_series.iloc[selected_indices].tolist()
+
+            col_del, col_del_all, col_down, col_down_layak = st.columns(4)
 
             with col_del:
                 if len(selected_ids) > 0:
@@ -409,28 +692,97 @@ elif menu == "Klasifikasi Siswa":
                         for id_target in selected_ids:
                             cursor.execute("DELETE FROM siswa WHERE id=?", (id_target,))
                         conn.commit()
-                            
-                        # PERBAIKAN: Refresh total agar chart di menu Statistik berubah
                         st.cache_data.clear()
                         st.success("Data Berhasil Dihapus!✅")
                         st.rerun()
                 else:
                     st.button("🗑️ Hapus (Pilih Data)", disabled=True, use_container_width=True)
+            # ===== FITUR BARU: HAPUS SEMUA DATA =====
+            with col_del_all:
+                if st.button("⚠️ Hapus Semua Data", type="primary", use_container_width=True, key="btn_trigger_hapus_semua"):
+                    st.session_state["confirm_delete_all"] = True
+                    st.rerun()
 
+            if st.session_state.get("confirm_delete_all", False):
+                st.warning("⚠️ **Apakah Anda yakin ingin menghapus SEMUA data?** Tindakan ini tidak dapat dibatalkan!")
+                col_yes, col_no = st.columns(2)
+                with col_yes:
+                    if st.button("✅ Ya, Hapus Semua", type="primary", use_container_width=True, key="btn_ya_hapus_semua"):
+                        try:
+                            cursor = conn.cursor()
+                            cursor.execute("DELETE FROM siswa")
+                            cursor.execute("DELETE FROM sqlite_sequence WHERE name='siswa'")  # Reset auto increment
+                            conn.commit()
+                            st.cache_data.clear()
+                            st.session_state["confirm_delete_all"] = False
+                            st.success("✅ Semua data berhasil dihapus!")
+                            time.sleep(1)
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Gagal menghapus data: {e}")
+                with col_no:
+                    if st.button("❌ Batal", use_container_width=True):
+                        st.session_state["confirm_delete_all"] = False
+                        st.rerun()
+            # ===== AKHIR HAPUS SEMUA =====
             with col_down:
-                import io
+                df_download = df_raw.copy()
+                df_download = df_download.sort_values('id' , ascending=True)
+                df_download = df_download.drop(columns=['id'])
+                df_download.insert(0, 'no', range(1, len(df_download) + 1))
+                if 'hasil' in df_download.columns:
+                    df_download['hasil'] = df_download['hasil'].fillna(0).astype(int).map({1: "LAYAK", 0: "TIDAK LAYAK"})
                 buffer = io.BytesIO()
                 with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-                    df_raw.to_excel(writer, index=False, sheet_name='Data_Klasifikasi_PIP')
+                    df_download.to_excel(writer, index=False, sheet_name='Data_Klasifikasi_PIP')
                     
                 st.download_button(
-                    label="📥 Download Data Excel",
+                    label="📥 Download Semua Data",
                     data=buffer.getvalue(),
                     file_name="Laporan_Klasifikasi_PIP.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     type="primary",
                     use_container_width=True 
                 )
+
+            # ===== FITUR BARU: DOWNLOAD HANYA SISWA LAYAK =====
+            with col_down_layak:
+                import io
+                df_layak = df_raw[df_raw['hasil'].fillna(0).astype(int) == 1].copy()
+                
+                if not df_layak.empty:
+                    df_layak = df_layak.sort_values('nama', ascending=True).reset_index(drop=True)
+                    df_layak.insert(0, 'No', range(1, len(df_layak) + 1))
+                    
+                    # Pilih hanya kolom yang perlu ditampilkan
+                    kolom_tampil = ['No', 'nipd', 'nama', 'hasil']
+                    df_layak_export = df_layak[[c for c in kolom_tampil if c in df_layak.columns]].copy()
+                    
+                    # Ubah nilai hasil dari angka ke teks
+                    df_layak_export['hasil'] = 'LAYAK'
+                    
+                    # Rename kolom agar rapi
+                    df_layak_export = df_layak_export.rename(columns={
+                        'nipd': 'NIPD',
+                        'nama': 'Nama Siswa',
+                        'hasil': 'Status'
+                    })
+                    buffer_layak = io.BytesIO()
+                    with pd.ExcelWriter(buffer_layak, engine='xlsxwriter') as writer:
+                        df_layak_export.to_excel(writer, index=False, sheet_name='Siswa_Layak_PIP')
+                    
+                    st.download_button(
+                        label=f"🏅 Download Siswa Layak ({len(df_layak)})",
+                        data=buffer_layak.getvalue(),
+                        file_name="Laporan_Siswa_Layak_PIP.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        type="secondary",
+                        use_container_width=True
+                    )
+                else:
+                    st.button("🏅 Tidak Ada Siswa Layak", disabled=True, use_container_width=True)
+            # ===== AKHIR FITUR DOWNLOAD LAYAK =====
+
         else:
             st.info("Belum ada data siswa terdaftar.")
 
