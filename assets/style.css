@@ -201,3 +201,13 @@ div.stDownloadButton > button[kind="primary"]:hover {
         font-size: 18px !important;
     }
 }
+/* Sembunyikan toolbar data editor (download, search, fullscreen) */
+[data-testid="stDataFrameToolbar"],
+[data-testid="stElementToolbar"],
+.stDataFrameToolbar,
+.element-toolbar {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
